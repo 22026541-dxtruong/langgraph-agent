@@ -11,7 +11,6 @@ from agent.tools import all_tools
 # Initialize the LLM
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
 
-# Create tool node for executing tools
 tool_node = ToolNode(all_tools)
 
 # Bind tools to the LLM
@@ -19,32 +18,6 @@ llm_with_tools = llm.bind_tools(all_tools)
 
 
 # System prompt for the ReAct agent
-# SYSTEM_PROMPT = """You are a helpful AI assistant with access to various tools including web search, webpage content fetching, document retrieval, memory, and calculation capabilities.
-
-# You follow a ReAct (Reasoning and Acting) approach:
-# 1. **Think** about the user's request and what you need to do
-# 2. **Act** by using appropriate tools if needed
-# 3. **Observe** the results from tools
-# 4. **Respond** with a helpful answer based on the tool results
-
-# Available capabilities:
-# - **Research**: Use web_search to find search results
-# - **Retrieval**: Use retrieve_documents to search your knowledge base
-# - **Memory**: Use save_to_memory and recall_from_memory for long-term storage
-# - **Calculation**: Use calculate for mathematical operations
-# - **Document Management**: Use add_documents_to_retrieval to add new documents
-
-# Guidelines:
-# - Always USE TOOLS when you need current information or external data
-# - Don't just plan - actually execute the tools to get real results
-# - Wait for tool results before responding to the user
-# - Synthesize information from tool results in your final response
-
-# IMPORTANT: When user asks about current information (weather, news, etc.), you MUST use tools to get real data. Don't just acknowledge the need to search - actually do it!
-
-# Current conversation summary: {conversation_summary}
-# User context: {user_context}
-# """
 SYSTEM_PROMPT = """You are a helpful AI assistant with access to various tools including web search, document retrieval, memory, and calculation capabilities.
 
 You follow a ReAct (Reasoning and Acting) approach:
@@ -62,7 +35,6 @@ Available capabilities:
 
 Guidelines:
 - Always think through your approach before acting
-- Use web_search to find current information online
 - Use tools when you need external information or capabilities
 - Summarize and synthesize information from multiple sources
 - Maintain context and memory of important information
@@ -72,6 +44,7 @@ Current conversation summary: {conversation_summary}
 User context: {user_context}
 """
 
+
 async def agent_node(state: AgentState) -> Dict[str, Any]:
     """
     Main agent reasoning and decision-making node.
@@ -79,7 +52,8 @@ async def agent_node(state: AgentState) -> Dict[str, Any]:
     # Create the prompt template
     prompt = ChatPromptTemplate.from_messages([
         ("system", SYSTEM_PROMPT),
-        MessagesPlaceholder(variable_name="messages")
+        MessagesPlaceholder(variable_name="messages"),
+        ("human", "Think step by step about how to help with this request. What tools do you need to use?")
     ])
     
     # Format the prompt with current state
@@ -94,7 +68,7 @@ async def agent_node(state: AgentState) -> Dict[str, Any]:
     
     # Add agent's reasoning to thoughts
     thoughts = state.thoughts.copy()
-    thoughts.append(f"Agent response: {response.content if response.content else 'Tool calls planned'}")
+    thoughts.append(f"Agent reasoning: {response.content}")
     
     return {
         "messages": [response],
@@ -135,6 +109,7 @@ async def research_node(state: AgentState) -> Dict[str, Any]:
     if last_message and hasattr(last_message, 'tool_calls') and last_message.tool_calls:
         for tool_call in last_message.tool_calls:
             if tool_call['name'] == 'web_search':
+                # This will be handled by the tool node
                 return {"thoughts": state.thoughts + ["Initiating web search"]}
     
     return {"thoughts": state.thoughts}
@@ -161,11 +136,7 @@ def should_continue(state: AgentState) -> str:
     """
     last_message = state.messages[-1] if state.messages else None
     
-    # Check if the last message has tool calls
-    if (last_message and 
-        hasattr(last_message, 'tool_calls') and 
-        last_message.tool_calls and 
-        len(last_message.tool_calls) > 0):
+    if last_message and hasattr(last_message, 'tool_calls') and last_message.tool_calls:
         return "tools"
     
     return "end"
@@ -180,11 +151,12 @@ def route_tools(state: AgentState) -> str:
     if last_message and hasattr(last_message, 'tool_calls') and last_message.tool_calls:
         tool_name = last_message.tool_calls[0]['name']
         
-        if tool_name == 'web_search':
+        if tool_name in ['web_search', 'web_search_news', 'scrape_webpage']:
             return "research"
-        elif tool_name in ['retrieve_documents', 'add_documents_to_retrieval']:
+        elif tool_name in ['retrieve_documents', 'add_documents_to_retrieval', 'analyze_text']:
             return "retrieval"
-        elif tool_name in ['save_to_memory', 'recall_from_memory']:
+        elif tool_name in ['save_to_memory', 'recall_from_memory', 'search_memory', 
+                          'set_reminder', 'check_reminders']:
             return "memory"
         else:
             return "tools"

@@ -19,6 +19,8 @@ dependencies = [
     "faiss-cpu>=1.7.4",
     "beautifulsoup4>=4.12.0"
     "langchain-tavily>=0.0.6",
+    "redis>=5.0.0",
+    "sqlalchemy>=2.0.0",
 ]
 
 
