@@ -17,10 +17,13 @@ dependencies = [
     "langchain-experimental>=0.0.60",
     "ddgs>=6.0.0",
     "faiss-cpu>=1.7.4",
-    "beautifulsoup4>=4.12.0"
+    "beautifulsoup4>=4.12.0",
     "langchain-tavily>=0.0.6",
     "redis>=5.0.0",
     "sqlalchemy>=2.0.0",
+    "pypdf>=3.14.0",
+    "tiktoken>=0.7.0",
+    "chromadb>=0.3.28",
 ]
 
 
