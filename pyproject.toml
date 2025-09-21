@@ -24,6 +24,7 @@ dependencies = [
     "pypdf>=3.14.0",
     "tiktoken>=0.7.0",
     "chromadb>=0.3.28",
+    "sentence-transformers>=2.4.0",
 ]
 
 

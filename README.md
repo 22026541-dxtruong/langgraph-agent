@@ -1,10 +1,13 @@
 # LangGraph Agent với Memory, Research, Retrieval và ReAct
 
 Tính năng:
-- **Memory**: Lưu trữ và truy xuất thông tin dài hạn
-- **Research**: Tìm kiếm thông tin trên web bằng Tavily
-- **Retrieval**: Tìm kiếm trong cơ sở kiến thức local bằng FAISS
-- **ReAct**: Agent reasoning với Think-Act-Observe pattern
+- **Query Transformation**: Tạo thêm các câu hỏi từ câu hỏi gốc
+- **Intelligent Routing**: Định tuyến đến đúng document
+- **Document Retrieval**: Tìm kiếm với RRF fusion
+- **Re-ranking**: Xếp hạng lại theo relevance
+- **Answer Generation**: Tạo câu trả lời từ context
+- **Quality Evaluation**: Đánh giá chất lượng tự động
+- **Self-Correction**: Cải thiện nếu cần thiết
 
 ## Cài đặt
 
@@ -16,11 +19,17 @@ python -m pip install -e .
 2. Cấu hình environment variables trong file `.env`:
 ```bash
 GOOGLE_API_KEY=your_google_api_key_here
-TAVILY_API_KEY=your_tavily_api_key_here
 LANGSMITH_TRACING=true
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
 LANGSMITH_API_KEY=your_langsmith_api_key_here
 LANGSMITH_PROJECT=langgraph-agent
+# Chroma DB settings
+CHROMA_DB_PATH=./data/chroma_db
+
+# Model settings
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+LLM_MODEL=gemini-2.5-flash
+TEMPERATURE=0.1
 ```
 
 3. Chạy trên LangSmith
@@ -31,28 +40,30 @@ langgraph dev
 
 ## Tính năng
 
-### 1. Memory
-- `save_to_memory(key, value)`: Lưu thông tin
-- `recall_from_memory(key)`: Truy xuất thông tin
-- Tự động tóm tắt cuộc hội thoại dài
+### 1. Workflow Process
 
-### 2. Research  
-- `web_search(query)`: Tìm kiếm web với Tavily
-- Tìm kiếm nâng cao với nhiều kết quả
-- Tự động xử lý lỗi
+- Query Transformation:
+  - Multi-variant queries: Tạo 3 phiên bản khác nhau của câu hỏi
+  - Synonym expansion: Sử dụng từ đồng nghĩa và cách diễn đạt khác
+  - Context enrichment: Thêm context và làm rõ chi tiết
+- Intelligent Routing: 
+  - Route classification: vectorstore, websearch, direct_response
+  - Cost optimization: Chỉ retrieve khi cần thiết
+  - Response quality: Tối ưu theo từng loại câu hỏi
+- Document Retrieval:
+  - Chunking strategy: RecursiveCharacterTextSplitter với overlap
+  - Multi-level storage: ChromaDB với cosine similarity
+  - Metadata enrichment: Source, title, chunk info
+- Re-ranking: 
+  - Reciprocal Rank Fusion: Kết hợp kết quả từ multiple queries
+  - Similarity filtering: Lọc theo threshold 0.3
+  - LLM-based re-ranking: Đánh giá relevance bằng Gemini
+- Self-Correction:
+  - Quality metrics: Accuracy, relevance, completeness, clarity
+  - Automatic retry: Tối đa 2 lần với improvement prompt
+  - Feedback loop: Sử dụng evaluation feedback để cải thiện
 
-### 3. Retrieval
-- `add_documents_to_retrieval(documents)`: Thêm tài liệu
-- `retrieve_documents(query)`: Tìm kiếm tài liệu liên quan
-- Sử dụng FAISS vector store
-
-### 4. ReAct Pattern
-- **Think**: Agent suy nghĩ về nhiệm vụ
-- **Act**: Sử dụng tools phù hợp  
-- **Observe**: Quan sát kết quả
-- **Respond**: Trả lời người dùng
-
-### 5. Graph Flow
+### 2. Graph Flow
 <div align="center">
   <img src="./static/studio_ui.png" alt="Graph view in LangGraph studio UI" width="75%" />
 </div>
